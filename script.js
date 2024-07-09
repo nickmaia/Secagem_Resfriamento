@@ -8,6 +8,8 @@ document.getElementById('calcular').addEventListener('click', function() {
 
     const curva = new CurvaSecagem(tempo, peso, pesoSeco, area);
     curva.plotarTaxas();
+    const [integralContinua, integralDiscreta] = curva.getTime(umidadeInicio, umidadeFinal);
+    displayIntegrals(integralContinua, integralDiscreta);
 });
 
 class CurvaSecagem {
@@ -62,6 +64,21 @@ class CurvaSecagem {
         };
         
         Plotly.newPlot('plot', [trace1, trace2], layout);
+    }
+
+    getTime(teorUmidadeInicio, teorUmidadeFinal) {
+        const x = this.teorUmidadeMedia;
+        const yContinua = this.RaContinua.map(r => this.pesoSeco / (this.area * r));
+        const yDiscreta = this.RaDiscreta.map(r => this.pesoSeco / (this.area * r));
+        
+        const xNew = linspace(teorUmidadeFinal, teorUmidadeInicio, 1000);
+        const yNewContinua = interp1(x, yContinua, xNew);
+        const yNewDiscreta = interp1(x, yDiscreta, xNew);
+        
+        const integralContinua = trapz(yNewContinua, xNew);
+        const integralDiscreta = trapz(yNewDiscreta, xNew);
+        
+        return [integralContinua, integralDiscreta];
     }
 
     polyfit(x, y, degree) {
@@ -125,4 +142,38 @@ class CurvaSecagem {
         }
         return augmented.map(row => row.slice(size));
     }
+}
+
+function displayIntegrals(continua, discreta) {
+    const output = document.getElementById('output');
+    const p = document.createElement('p');
+    p.innerHTML = `
+        <strong>Tempo (t) pela taxa continua:</strong> ${continua.toFixed(2)}<br>
+        <strong>Tempo (t) pela taxa discreta:</strong> ${discreta.toFixed(2)}
+    `;
+    output.innerHTML = '';  // Clear previous output
+    output.appendChild(p);
+}
+
+function linspace(start, end, num) {
+    const step = (end - start) / (num - 1);
+    return Array.from({ length: num }, (_, i) => start + i * step);
+}
+
+function interp1(x, y, xNew) {
+    return xNew.map(xi => {
+        let i = 1;
+        while (i < x.length && xi > x[i]) i++;
+        const x0 = x[i - 1], x1 = x[i];
+        const y0 = y[i - 1], y1 = y[i];
+        return y0 + (y1 - y0) * (xi - x0) / (x1 - x0);
+    });
+}
+
+function trapz(y, x) {
+    let sum = 0;
+    for (let i = 0; i < y.length - 1; i++) {
+        sum += 0.5 * (y[i + 1] + y[i]) * (x[i + 1] - x[i]);
+    }
+    return sum;
 }
