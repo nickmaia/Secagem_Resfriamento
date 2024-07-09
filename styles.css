@@ -1,0 +1,30 @@
+body {
+        font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 800px;
+                margin: 0 auto;
+                    padding: 20px;
+                    }
+
+                    .input-container {
+                        display: flex;
+                            flex-direction: column;
+                                gap: 10px;
+                                }
+
+                                .input-container label {
+                                    font-weight: bold;
+                                    }
+
+                                    .input-container input, .input-container button {
+                                        padding: 10px;
+                                            font-size: 16px;
+                                            }
+
+                                            #output {
+                                                margin-top: 20px;
+                                                }
+                                                
+}
