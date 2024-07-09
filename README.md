@@ -1,0 +1,1 @@
+# Secagem_Resfriamento
