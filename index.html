@@ -2,39 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Curva de Secagem</title>
-                <link rel="stylesheet" href="styles.css">
-                    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-                    </head>
-                    <body>
-                        <div class="container">
-                                <h1>Curva de Secagem</h1>
-                                        <div class="input-container">
-                                                    <label for="tempo">Tempo:</label>
-                                                                <input type="text" id="tempo" value="0, 0.4, 0.8, 1.4, 2.2, 3, 4.2, 5, 7, 9, 12">
-                                                                            
-                                                                                        <label for="peso">Peso:</label>
-                                                                                                    <input type="text" id="peso" value="4.944, 4.885, 4.808, 4.699, 4.554, 4.404, 4.241, 4.15, 4.019, 3.978, 3.955">
-                                                                                                                
-                                                                                                                            <label for="peso_seco">Peso seco:</label>
-                                                                                                                                        <input type="number" id="peso_seco" value="3.765">
-                                                                                                                                                    
-                                                                                                                                                                <label for="area">Área:</label>
-                                                                                                                                                                            <input type="number" id="area" value="0.166">
-                                                                                                                                                                                        
-                                                                                                                                                                                                    <label for="umidade_inicio">Umidade início:</label>
-                                                                                                                                                                                                                <input type="number" id="umidade_inicio" value="0.2">
-                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                        <label for="umidade_final">Umidade final:</label>
-                                                                                                                                                                                                                                                    <input type="number" id="umidade_final" value="0.04">
-                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                            <button id="calcular">Calcular e Plotar</button>
-                                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                                            <div id="output"></div>
-                                                                                                                                                                                                                                                                                                    <div id="plot"></div>
-                                                                                                                                                                                                                                                                                                        </div>
-                                                                                                                                                                                                                                                                                                            <script src="script.js"></script>
-                                                                                                                                                                                                                                                                                                            </body>
-                                                                                                                                                                                                                                                                                                            </html>
-                                                                                                                                                                                                                                                                                                            
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curva de Secagem</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Curva de Secagem</h1>
+        <div class="input-container">
+            <label for="tempo">Tempo:</label>
+            <input type="text" id="tempo" value="0, 0.4, 0.8, 1.4, 2.2, 3, 4.2, 5, 7, 9, 12">
+            
+            <label for="peso">Peso:</label>
+            <input type="text" id="peso" value="4.944, 4.885, 4.808, 4.699, 4.554, 4.404, 4.241, 4.15, 4.019, 3.978, 3.955">
+            
+            <label for="peso_seco">Peso seco:</label>
+            <input type="number" id="peso_seco" value="3.765">
+            
+            <label for="area">Área:</label>
+            <input type="number" id="area" value="0.166">
+            
+            <label for="umidade_inicio">Umidade início:</label>
+            <input type="number" id="umidade_inicio" value="0.2">
+            
+            <label for="umidade_final">Umidade final:</label>
+            <input type="number" id="umidade_final" value="0.04">
+            
+            <button id="calcular">Calcular e Plotar</button>
+        </div>
+        <div id="output"></div>
+        <div id="plot"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
