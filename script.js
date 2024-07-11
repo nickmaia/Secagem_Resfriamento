@@ -1,120 +1,139 @@
+document.getElementById('calcular').addEventListener('click', function() {
+    const tempo = document.getElementById('tempo').value.split(',').map(Number);
+    const peso = document.getElementById('peso').value.split(',').map(Number);
+    const pesoSeco = parseFloat(document.getElementById('peso_seco').value);
+    const area = parseFloat(document.getElementById('area').value);
+    const umidadeInicio = parseFloat(document.getElementById('umidade_inicio').value);
+    const umidadeFinal = parseFloat(document.getElementById('umidade_final').value);
 
-        const { DataFrame } = dfjs;
+    const curva = new CurvaSecagem(tempo, peso, pesoSeco, area);
+    curva.plotarTaxas();
+    const [integralContinua, integralDiscreta] = curva.getTime(umidadeInicio, umidadeFinal);
+    displayIntegrals(integralContinua, integralDiscreta);
+});
 
-        function get_derivative_poly2(x, y) {
-            let coefficients = numeric.polynomialFit(x, y, 2);
-            let derivative = numeric.polynomialDerivative(coefficients);
-            return x.map(val => numeric.polynomialValue(derivative, val));
+class CurvaSecagem {
+    constructor(tempo, peso, pesoSeco, area) {
+        this.tempo = tempo;
+        this.peso = peso;
+        this.pesoSeco = pesoSeco;
+        this.area = area;
+        
+        this.massaAgua = peso.map(p => p - pesoSeco);
+        this.teorUmidade = this.massaAgua.map(m => m / pesoSeco);
+        this.teorUmidadeEquilibrio = this.teorUmidade[this.teorUmidade.length - 1];
+        this.teorUmidadeRelativa = this.teorUmidade.map(t => t - this.teorUmidadeEquilibrio);
+        this.teorUmidadeMedia = this.teorUmidadeRelativa.map((t, i, arr) => (arr[i] + (arr[i + 1] || t)) / 2);
+        
+        this.dxdtDiscreta = this.teorUmidade.map((t, i, arr) => (arr[i + 1] - t) / (this.tempo[i + 1] - this.tempo[i])).slice(0, -1);
+        this.dxdtContinua = this.getDerivativePoly2(this.tempo, this.teorUmidade);
+        
+        this.RaDiscreta = this.dxdtDiscreta.map(d => -pesoSeco * d / area);
+        this.RaContinua = this.dxdtContinua.map(d => -pesoSeco * d / area);
+    }
+
+    getDerivativePoly2(x, y) {
+        const polinomio = this.polyfit(x, y, 2);
+        const derivadaPolinomio = this.polider(polinomio);
+        return this.polyval(derivadaPolinomio, x);
+    }
+
+    plotarTaxas() {
+        const trace1 = {
+            x: this.teorUmidadeMedia,
+            y: this.RaDiscreta,
+            mode: 'lines+markers',
+            name: 'Taxa de secagem discreta (Ra)',
+            line: { dash: 'dash', color: 'red' },
+            marker: { color: 'red' }
+        };
+        
+        const trace2 = {
+            x: this.teorUmidadeMedia,
+            y: this.RaContinua,
+            mode: 'lines+markers',
+            name: 'Taxa de secagem continua (Ra)',
+            line: { dash: 'solid', color: 'blue' },
+            marker: { color: 'blue' }
+        };
+        
+        const layout = {
+            title: 'Taxa de Secagem vs Teor de Umidade Média',
+            xaxis: { title: 'Teor de Umidade Média (Xm)' },
+            yaxis: { title: 'Taxa de Secagem (Ra)' }
+        };
+        
+        Plotly.newPlot('plot', [trace1, trace2], layout);
+    }
+
+    getTime(teorUmidadeInicio, teorUmidadeFinal) {
+        const x = this.teorUmidadeMedia;
+        const yContinua = this.RaContinua.map(r => this.pesoSeco / (this.area * r));
+        const yDiscreta = this.RaDiscreta.map(r => this.pesoSeco / (this.area * r));
+        
+        const xNew = linspace(teorUmidadeFinal, teorUmidadeInicio, 1000);
+        const yNewContinua = interp1(x, yContinua, xNew);
+        const yNewDiscreta = interp1(x, yDiscreta, xNew);
+        
+        const integralContinua = numeric.trapz(xNew, yNewContinua);
+        const integralDiscreta = numeric.trapz(xNew, yNewDiscreta);
+        
+        return [integralContinua, integralDiscreta];
+    }
+
+    polyfit(x, y, degree) {
+        const m = x.length;
+        const X = [];
+        for (let i = 0; i < m; i++) {
+            const row = [];
+            for (let j = 0; j <= degree; j++) {
+                row.push(Math.pow(x[i], degree - j));
+            }
+            X.push(row);
         }
+        const XT = this.transpose(X);
+        const XTX = numeric.dot(XT, X);
+        const invXTX = numeric.inv(XTX);
+        const XTy = numeric.dot(XT, y);
+        return numeric.dot(invXTX, XTy);
+    }
 
-        class CurvaSecagem {
-            constructor(tempo, peso, peso_seco, area) {
-                this.tempo = tempo;
-                this.peso = peso;
-                this.peso_seco = peso_seco;
-                this.area = area;
+    polider(poly) {
+        const degree = poly.length - 1;
+        return poly.slice(0, -1).map((c, i) => c * (degree - i));
+    }
 
-                this.massa_agua = numeric.sub(peso, peso_seco);
-                this.teor_umidade = numeric.div(this.massa_agua, peso_seco);
-                this.teor_umidade_equilibrio = this.massa_agua[this.massa_agua.length - 1] / peso_seco;
-                this.teor_umidade_relativa = numeric.sub(this.teor_umidade, this.teor_umidade_equilibrio);
-                this.teor_umidade_media = numeric.div(numeric.convolve(this.teor_umidade_relativa, [1, 1]), 2);
+    polyval(poly, x) {
+        return x.map(xi => poly.reduce((acc, c, i) => acc + c * Math.pow(xi, poly.length - 1 - i), 0));
+    }
 
-                this.dxdt_discreta = numeric.div(numeric.diff(this.teor_umidade), numeric.diff(this.tempo));
-                this.dxdt_continua = get_derivative_poly2(this.tempo, this.teor_umidade);
+    transpose(matrix) {
+        return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]));
+    }
+}
 
-                this.Ra_discreta = numeric.neg(numeric.div(numeric.mul(peso_seco, this.dxdt_discreta), area));
-                this.Ra_continua = numeric.neg(numeric.div(numeric.mul(peso_seco, this.dxdt_continua), area));
+function displayIntegrals(continua, discreta) {
+    const output = document.getElementById('output');
+    const p = document.createElement('p');
+    p.innerHTML = 
+        '<strong>Tempo (t) pela taxa continua:</strong> ${continua.toFixed(2)} <br>' 
+        '<strong>Tempo (t) pela taxa discreta:</strong> ${discreta.toFixed(2)}'
+    ;
+    output.innerHTML = '';  // Clear previous output
+    output.appendChild(p);
+}
 
-                this.dicionario = new DataFrame({
-                    'Tempo (t)': this.tempo,
-                    'Peso (W)': this.peso,
-                    'Massa água (Wa)': this.massa_agua,
-                    'Teor umidade (Xt)': this.teor_umidade,
-                    'Teor umidade relativa (X)': this.teor_umidade_relativa,
-                    'Teor umidade media (Xm)': this.teor_umidade_media,
-                    'dX/dt discreta': this.dxdt_discreta,
-                    'dX/dt continua': this.dxdt_continua,
-                    'Taxa de secagem discreta (Ra)': this.Ra_discreta,
-                    'Taxa de secagem continua (Ra)': this.Ra_continua,
-                });
+function linspace(start, end, num) {
+    const step = (end - start) / (num - 1);
+    return Array.from({ length: num }, (_, i) => start + i * step);
+}
 
-                this.constantes = { 'Área': this.area, 'Peso seco': this.peso_seco };
-            }
-
-            get_table() {
-                return this.dicionario;
-            }
-
-            get_time(teor_umidade_inicio, teor_umidade_final) {
-                let x = this.teor_umidade_media;
-                let y_continua = numeric.div(this.peso_seco, numeric.mul(this.area, this.Ra_continua));
-                let y_discreta = numeric.div(this.peso_seco, numeric.mul(this.area, this.Ra_discreta));
-
-                let f_continua = linearInterpolator(x.slice(0, -1), y_continua.slice(0, -1));
-                let f_discreta = linearInterpolator(x, y_discreta);
-
-                let x_new = numeric.linspace(teor_umidade_final, teor_umidade_inicio, 1000);
-                let y_new_continua = x_new.map(f_continua);
-                let integral_continua = numeric.trapz(y_new_continua, x_new);
-
-                let y_new_discreta = x_new.map(f_discreta);
-                let integral_discreta = numeric.trapz(y_new_discreta, x_new);
-
-                return [integral_continua, integral_discreta];
-            }
-
-            plotar_taxas() {
-                let df = this.dicionario.toDict();
-
-                let trace1 = {
-                    x: df["Teor umidade media (Xm)"],
-                    y: df["Taxa de secagem discreta (Ra)"],
-                    mode: 'lines+markers',
-                    name: 'Taxa de secagem discreta (Ra)',
-                    line: { dash: 'dash', color: 'red' },
-                    marker: { color: 'red' }
-                };
-
-                let trace2 = {
-                    x: df["Teor umidade media (Xm)"],
-                    y: df["Taxa de secagem continua (Ra)"],
-                    mode: 'lines+markers',
-                    name: 'Taxa de secagem continua (Ra)',
-                    line: { dash: 'solid', color: 'blue' },
-                    marker: { color: 'blue' }
-                };
-
-                let layout = {
-                    title: 'Taxa de Secagem vs Teor de Umidade Média',
-                    xaxis: { title: 'Teor de Umidade Média (Xm)' },
-                    yaxis: { title: 'Taxa de Secagem (Ra)' },
-                    showlegend: true
-                };
-
-                let data = [trace1, trace2];
-                Plotly.newPlot('output', data, layout);
-            }
-        }
-
-        function main() {
-            let tempo = [0, 0.4, 0.8, 1.4, 2.2, 3, 4.2, 5, 7, 9, 12];
-            let peso = [4.944, 4.885, 4.808, 4.699, 4.554, 4.404, 4.241, 4.15, 4.019, 3.978, 3.955];
-            let peso_seco = 3.765;
-            let area = 0.166;
-            let teor_umidade_inicio = 0.2;
-            let teor_umidade_final = 0.04;
-
-            let curva = new CurvaSecagem(tempo, peso, peso_seco, area);
-            let dicionario = curva.get_table();
-
-            console.log(dicionario);
-
-            curva.plotar_taxas();
-
-            let [integral_continua, integral_discreta] = curva.get_time(teor_umidade_inicio, teor_umidade_final);
-            console.log(`Tempo (t) pela taxa continua: ${integral_continua}`);
-            console.log(`Tempo (t) pela taxa discreta: ${integral_discreta}`);
-        }
-
-        main();
+function interp1(x, y, xNew) {
+    return xNew.map(xi => {
+        let i = 1;
+        while (i < x.length && xi > x[i]) i++;
+        const x0 = x[i - 1], x1 = x[i];
+        const y0 = y[i - 1], y1 = y[i];
+        return y0 + (y1 - y0) * (xi - x0) / (x1 - x0);
+    });
+}
