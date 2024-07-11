@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Curva de Secagem</title>
     <link rel="stylesheet" href="styles.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dataframe-js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-statistics/7.0.4/simple-statistics.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/linear-interpolate"></script>
 </head>
 <body>
     <div class="container">
@@ -31,8 +36,8 @@
             
             <button id="calcular">Calcular e Plotar</button>
         </div>
+        <div id="input-widgets"></div>
         <div id="output"></div>
-        <div id="plot"></div>
     </div>
     <script src="script.js"></script>
 </body>
